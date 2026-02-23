@@ -81,3 +81,87 @@ export interface UsageRecord {
   responseTime: number;
   cost: number;
 }
+
+// ==================== 悬赏系统类型 ====================
+
+export type BountyStatus = 'open' | 'in_progress' | 'review' | 'escrow' | 'completed';
+export type SubmissionStatus = 'submitted' | 'under_review' | 'revision' | 'working' | 'accepted' | 'completed';
+export type Urgency = 'high' | 'medium' | 'low';
+export type PosterType = 'individual' | 'company';
+
+export interface BountyUser {
+  id: string;
+  name: string;
+  avatar: string;
+  followers: number;
+  bio: string;
+  verified: boolean;
+  type: 'individual' | 'company';
+}
+
+export interface Feedback {
+  from: string;
+  text: string;
+  time: string;
+  type: 'revision' | 'reply' | 'approve' | 'complete';
+}
+
+export interface EscrowInfo {
+  buyerPaid: boolean;
+  sellerUploaded: boolean;
+  review: 'pending' | 'in_progress' | 'passed';
+  paidTime?: string;
+  uploadTime?: string;
+  doneTime?: string;
+}
+
+export interface SubmissionFile {
+  name: string;
+  size: string;
+}
+
+export interface BountySubmission {
+  id: string;
+  uid: string;
+  time: string;
+  status: SubmissionStatus;
+  price: number;
+  days: number;
+  pitch: string;
+  demoUrl?: string;
+  demoDesc?: string;
+  tech: string;
+  files: SubmissionFile[];
+  feedbacks: Feedback[];
+  escrow?: EscrowInfo;
+}
+
+export interface Bounty {
+  id: string;
+  title: string;
+  reward: number;
+  uid: string;
+  posterType: PosterType;
+  urgency: Urgency;
+  deadline: string;
+  status: BountyStatus;
+  desc: string;
+  tags: string[];
+  submissions: BountySubmission[];
+}
+
+export interface Video {
+  id: string;
+  uid: string;
+  type: 'showcase' | 'bounty' | 'daily';
+  title: string;
+  desc: string;
+  likes: number;
+  comments: number;
+  shares: number;
+  saves: number;
+  gradient: string;
+  time: string;
+  agentId?: string;
+  bountyId?: string;
+}

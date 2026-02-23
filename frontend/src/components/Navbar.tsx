@@ -27,16 +27,16 @@ export default function Navbar() {
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-6">
             <Link href="/" className="text-gray-600 hover:text-blue-600 font-medium transition-colors">
-              市场
+              🏪 市场
+            </Link>
+            <Link href="/bounty" className="text-gray-600 hover:text-orange-500 font-medium transition-colors">
+              🏆 悬赏
             </Link>
             <Link href="/user" className="text-gray-600 hover:text-blue-600 font-medium transition-colors">
               我的
             </Link>
             <a href="#" className="text-gray-600 hover:text-blue-600 font-medium transition-colors">
               开发者
-            </a>
-            <a href="#" className="text-gray-600 hover:text-blue-600 font-medium transition-colors">
-              文档
             </a>
           </div>
 
@@ -84,16 +84,16 @@ export default function Navbar() {
         <div className="md:hidden border-t border-gray-200 bg-white">
           <div className="px-4 py-3 space-y-2">
             <Link href="/" className="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100">
-              市场
+              🏪 市场
+            </Link>
+            <Link href="/bounty" className="block px-3 py-2 rounded-lg text-gray-600 hover:bg-orange-50 hover:text-orange-600">
+              🏆 悬赏大厅
             </Link>
             <Link href="/user" className="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100">
               我的
             </Link>
             <a href="#" className="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100">
               开发者
-            </a>
-            <a href="#" className="block px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100">
-              文档
             </a>
           </div>
         </div>
