@@ -1,48 +1,58 @@
 'use client';
 
 import BountyForm from '@/components/BountyForm';
+import Link from 'next/link';
 
 export default function NewBountyPage() {
   return (
     <div className="min-h-screen bg-gray-100">
-      <div className="max-w-3xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-xl p-6 mb-6 text-white">
-          <h1 className="text-2xl font-bold mb-2">💰 发布悬赏</h1>
-          <p className="text-white/80">发布你的需求，让优秀的人才来帮你完成</p>
+      {/* Header */}
+      <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white">
+        <div className="max-w-3xl mx-auto px-4 py-8">
+          <Link href="/bounties" className="text-white/80 hover:text-white text-sm mb-2 inline-block">
+            ← 返回悬赏大厅
+          </Link>
+          <h1 className="text-2xl font-bold">📝 发布悬赏</h1>
+          <p className="text-white/80 mt-1">发布你的需求，让专业的人帮你完成</p>
         </div>
+      </div>
 
+      <div className="max-w-3xl mx-auto px-4 py-6">
         {/* Tips */}
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+        <div className="bg-blue-50 rounded-xl p-4 mb-6 border border-blue-100">
           <h3 className="font-medium text-blue-800 mb-2">💡 发布技巧</h3>
           <ul className="text-blue-700 text-sm space-y-1">
-            <li>• 标题要简洁明了，突出核心需求</li>
-            <li>• 描述越详细，越容易找到合适的人</li>
-            <li>• 合理定价可以吸引更多优质申请</li>
-            <li>• 设置合理的截止日期，给接单者足够时间</li>
+            <li>• 标题要简明扼要，突出核心需求</li>
+            <li>• 描述越详细，越容易吸引合适的人</li>
+            <li>• 合理设置悬赏金额和截止日期</li>
+            <li>• 添加相关标签，让更多人看到</li>
           </ul>
         </div>
 
         {/* Form */}
-        <div className="bg-white rounded-xl p-6 shadow-sm">
-          <BountyForm mode="create" />
+        <div className="bg-white rounded-xl shadow-sm p-6">
+          <BountyForm />
         </div>
 
         {/* FAQ */}
-        <div className="mt-6 bg-white rounded-xl p-6 shadow-sm">
+        <div className="mt-6 bg-white rounded-xl shadow-sm p-6">
           <h3 className="font-bold text-gray-800 mb-4">❓ 常见问题</h3>
           <div className="space-y-4 text-sm">
             <div>
-              <p className="font-medium text-gray-700">资金如何保障？</p>
-              <p className="text-gray-500">悬赏金额会暂时托管在平台，验收通过后才会支付给接单者。</p>
+              <h4 className="font-medium text-gray-700">悬赏金额怎么设置？</h4>
+              <p className="text-gray-500">建议参考市场价格，太低可能没人接单，太高可能造成浪费。</p>
             </div>
             <div>
-              <p className="font-medium text-gray-700">如果没人接单怎么办？</p>
-              <p className="text-gray-500">截止日期后如果无人接单，资金会全额退回到你的账户。</p>
+              <h4 className="font-medium text-gray-700">如何选择接单者？</h4>
+              <p className="text-gray-500">发布后会收到申请，你可以查看申请者的资料和过往评价，选择最合适的人。</p>
             </div>
             <div>
-              <p className="font-medium text-gray-700">服务费怎么收取？</p>
-              <p className="text-gray-500">平台收取5%的服务费，加急悬赏额外收取10%。</p>
+              <h4 className="font-medium text-gray-700">交付不满意怎么办？</h4>
+              <p className="text-gray-500">你可以要求修改，或者申请平台介入仲裁。</p>
+            </div>
+            <div>
+              <h4 className="font-medium text-gray-700">平台收取多少手续费？</h4>
+              <p className="text-gray-500">平台收取悬赏金额的5%作为服务费，加急订单额外收取10%。</p>
             </div>
           </div>
         </div>

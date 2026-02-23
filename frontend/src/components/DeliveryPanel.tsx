@@ -2,298 +2,244 @@
 
 import { useState } from 'react';
 
-type DeliveryStatus = 'pending' | 'submitted' | 'revision' | 'approved' | 'rejected';
+type DeliveryStatus = 'not_started' | 'in_progress' | 'submitted' | 'revision_requested' | 'accepted' | 'completed';
 
 interface Delivery {
   id: string;
-  version: number;
-  content: string;
-  attachments: Array<{ name: string; url: string; size: string }>;
-  submittedAt: string;
   status: DeliveryStatus;
+  content?: string;
+  attachments?: Array<{ name: string; url: string; size: string }>;
+  submittedAt?: string;
   feedback?: string;
+  revisionCount: number;
 }
 
 interface DeliveryPanelProps {
-  bountyId: string;
-  isWorker?: boolean;  // 接单者
-  isOwner?: boolean;   // 发布者
-  deliveries?: Delivery[];
-  onSubmitDelivery?: (data: { content: string; files: File[] }) => void;
-  onApprove?: (deliveryId: string) => void;
-  onRequestRevision?: (deliveryId: string, feedback: string) => void;
-  onReject?: (deliveryId: string, reason: string) => void;
+  delivery: Delivery;
+  isOwner: boolean;
+  isWorker: boolean;
+  onSubmitDelivery?: (content: string, files: File[]) => void;
+  onRequestRevision?: (feedback: string) => void;
+  onAcceptDelivery?: () => void;
+  onCompletePayment?: () => void;
 }
 
-const mockDeliveries: Delivery[] = [
-  {
-    id: 'd1',
-    version: 1,
-    content: '第一版交付：\n\n1. 完成了核心功能开发\n2. 包含完整的文档\n3. 已进行基础测试\n\n请查收并给出反馈。',
-    attachments: [
-      { name: 'project-v1.zip', url: '#', size: '2.3MB' },
-      { name: 'README.md', url: '#', size: '8KB' },
-    ],
-    submittedAt: '2026-02-22 14:30',
-    status: 'revision',
-    feedback: '整体不错，但还需要修改以下几点：1. 首页加载速度需要优化；2. 移动端适配还有问题',
-  },
-  {
-    id: 'd2',
-    version: 2,
-    content: '第二版交付：\n\n已根据反馈进行修改：\n1. 优化了首页加载速度，现在<2秒\n2. 修复了所有移动端适配问题\n3. 额外添加了暗黑模式支持',
-    attachments: [
-      { name: 'project-v2.zip', url: '#', size: '2.5MB' },
-      { name: 'CHANGELOG.md', url: '#', size: '3KB' },
-    ],
-    submittedAt: '2026-02-23 10:00',
-    status: 'pending',
-  },
-];
-
-const statusConfig: Record<DeliveryStatus, { label: string; color: string; bg: string; icon: string }> = {
-  pending: { label: '待验收', color: 'text-yellow-600', bg: 'bg-yellow-100', icon: '⏳' },
-  submitted: { label: '已提交', color: 'text-blue-600', bg: 'bg-blue-100', icon: '📤' },
-  revision: { label: '需修改', color: 'text-orange-600', bg: 'bg-orange-100', icon: '✏️' },
-  approved: { label: '已通过', color: 'text-green-600', bg: 'bg-green-100', icon: '✅' },
-  rejected: { label: '已拒绝', color: 'text-red-600', bg: 'bg-red-100', icon: '❌' },
+const statusConfig: Record<DeliveryStatus, { label: string; icon: string; color: string; bg: string }> = {
+  not_started: { label: '未开始', icon: '⏳', color: 'text-gray-600', bg: 'bg-gray-100' },
+  in_progress: { label: '进行中', icon: '🔨', color: 'text-blue-600', bg: 'bg-blue-100' },
+  submitted: { label: '已提交', icon: '📤', color: 'text-orange-600', bg: 'bg-orange-100' },
+  revision_requested: { label: '需修改', icon: '🔄', color: 'text-yellow-600', bg: 'bg-yellow-100' },
+  accepted: { label: '已验收', icon: '✅', color: 'text-green-600', bg: 'bg-green-100' },
+  completed: { label: '已完成', icon: '🎉', color: 'text-green-600', bg: 'bg-green-100' },
 };
 
 export default function DeliveryPanel({
-  isWorker = false,
-  isOwner = false,
-  deliveries = mockDeliveries,
+  delivery,
+  isOwner,
+  isWorker,
   onSubmitDelivery,
-  onApprove,
   onRequestRevision,
-  onReject,
+  onAcceptDelivery,
+  onCompletePayment,
 }: DeliveryPanelProps) {
-  const [showSubmitForm, setShowSubmitForm] = useState(false);
-  const [submitContent, setSubmitContent] = useState('');
-  const [files, setFiles] = useState<File[]>([]);
-  const [feedbackModal, setFeedbackModal] = useState<{ type: 'revision' | 'reject'; deliveryId: string } | null>(null);
-  const [feedbackText, setFeedbackText] = useState('');
+  const [deliveryContent, setDeliveryContent] = useState(delivery.content || '');
+  const [revisionFeedback, setRevisionFeedback] = useState('');
+  const [showRevisionForm, setShowRevisionForm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const latestDelivery = deliveries[deliveries.length - 1];
-  const canSubmit = isWorker && (!latestDelivery || latestDelivery.status === 'revision');
-  const canReview = isOwner && latestDelivery?.status === 'pending';
+  const status = statusConfig[delivery.status];
 
-  const handleSubmit = () => {
-    if (!submitContent.trim()) return;
-    onSubmitDelivery?.({ content: submitContent, files });
-    setSubmitContent('');
-    setFiles([]);
-    setShowSubmitForm(false);
+  const handleSubmitDelivery = async () => {
+    if (!deliveryContent.trim()) {
+      alert('请填写交付内容');
+      return;
+    }
+    setIsSubmitting(true);
+    await new Promise(r => setTimeout(r, 1000));
+    onSubmitDelivery?.(deliveryContent, []);
+    setIsSubmitting(false);
   };
 
-  const handleFeedbackSubmit = () => {
-    if (!feedbackModal || !feedbackText.trim()) return;
-    if (feedbackModal.type === 'revision') {
-      onRequestRevision?.(feedbackModal.deliveryId, feedbackText);
-    } else {
-      onReject?.(feedbackModal.deliveryId, feedbackText);
+  const handleRequestRevision = async () => {
+    if (!revisionFeedback.trim()) {
+      alert('请填写修改意见');
+      return;
     }
-    setFeedbackModal(null);
-    setFeedbackText('');
+    setIsSubmitting(true);
+    await new Promise(r => setTimeout(r, 1000));
+    onRequestRevision?.(revisionFeedback);
+    setShowRevisionForm(false);
+    setRevisionFeedback('');
+    setIsSubmitting(false);
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm">
-      <div className="px-6 py-4 border-b flex items-center justify-between">
-        <h3 className="font-bold text-gray-800">📦 交付管理</h3>
-        {canSubmit && (
-          <button
-            onClick={() => setShowSubmitForm(true)}
-            className="px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg text-sm font-medium hover:opacity-90"
-          >
-            + 提交交付
-          </button>
+    <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+      {/* Header */}
+      <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <span className="text-xl">{status.icon}</span>
+          <div>
+            <h3 className="font-bold text-gray-800">交付管理</h3>
+            <span className={`text-sm ${status.color}`}>{status.label}</span>
+          </div>
+        </div>
+        {delivery.revisionCount > 0 && (
+          <span className="px-2 py-1 bg-yellow-100 text-yellow-600 text-xs rounded-full">
+            已修改 {delivery.revisionCount} 次
+          </span>
         )}
       </div>
 
-      {/* Submit Form */}
-      {showSubmitForm && (
-        <div className="p-6 bg-orange-50 border-b">
-          <h4 className="font-medium text-gray-800 mb-4">📤 提交交付内容</h4>
-          <textarea
-            value={submitContent}
-            onChange={e => setSubmitContent(e.target.value)}
-            rows={4}
-            placeholder="描述你的交付内容..."
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 mb-4"
-          />
-          
-          {/* File Upload */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">附件</label>
-            <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-orange-400 transition-colors cursor-pointer">
-              <input
-                type="file"
-                multiple
-                onChange={e => setFiles(Array.from(e.target.files || []))}
-                className="hidden"
-                id="file-upload"
+      {/* Content */}
+      <div className="p-4">
+        {/* Worker View - Submit Delivery */}
+        {isWorker && (delivery.status === 'in_progress' || delivery.status === 'revision_requested') && (
+          <div className="space-y-4">
+            {delivery.status === 'revision_requested' && delivery.feedback && (
+              <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-200">
+                <h4 className="font-medium text-yellow-800 mb-2">📝 修改意见</h4>
+                <p className="text-yellow-700">{delivery.feedback}</p>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">交付内容</label>
+              <textarea
+                value={deliveryContent}
+                onChange={e => setDeliveryContent(e.target.value)}
+                placeholder="描述你的交付内容，包括完成情况、相关链接等..."
+                rows={6}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
-              <label htmlFor="file-upload" className="cursor-pointer">
-                <span className="text-4xl block mb-2">📎</span>
-                <span className="text-gray-600">点击或拖拽上传文件</span>
-              </label>
             </div>
-            {files.length > 0 && (
-              <div className="mt-2 space-y-1">
-                {files.map((file, i) => (
-                  <div key={i} className="flex items-center gap-2 text-sm text-gray-600">
-                    <span>📄</span>
-                    <span>{file.name}</span>
-                    <span className="text-gray-400">({(file.size / 1024).toFixed(1)}KB)</span>
-                  </div>
-                ))}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">附件（可选）</label>
+              <div className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center hover:border-orange-300 transition-colors cursor-pointer">
+                <div className="text-4xl mb-2">📎</div>
+                <p className="text-gray-500">点击或拖拽上传文件</p>
+                <p className="text-gray-400 text-sm mt-1">支持 zip, rar, pdf, doc 等格式</p>
+              </div>
+            </div>
+
+            <button
+              onClick={handleSubmitDelivery}
+              disabled={isSubmitting}
+              className="w-full py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl font-bold hover:opacity-90 disabled:opacity-50"
+            >
+              {isSubmitting ? '提交中...' : '📤 提交交付'}
+            </button>
+          </div>
+        )}
+
+        {/* Owner View - Review Delivery */}
+        {isOwner && delivery.status === 'submitted' && (
+          <div className="space-y-4">
+            <div className="p-4 bg-gray-50 rounded-xl">
+              <h4 className="font-medium text-gray-800 mb-2">交付内容</h4>
+              <p className="text-gray-600 whitespace-pre-wrap">{delivery.content}</p>
+            </div>
+
+            {delivery.attachments && delivery.attachments.length > 0 && (
+              <div>
+                <h4 className="font-medium text-gray-800 mb-2">附件</h4>
+                <div className="space-y-2">
+                  {delivery.attachments.map((file, i) => (
+                    <a
+                      key={i}
+                      href={file.url}
+                      className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100"
+                    >
+                      <span>📎</span>
+                      <span className="flex-1 text-gray-700">{file.name}</span>
+                      <span className="text-gray-400 text-sm">{file.size}</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {!showRevisionForm ? (
+              <div className="flex gap-3">
+                <button
+                  onClick={onAcceptDelivery}
+                  className="flex-1 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-bold hover:opacity-90"
+                >
+                  ✅ 验收通过
+                </button>
+                <button
+                  onClick={() => setShowRevisionForm(true)}
+                  className="flex-1 py-3 border border-orange-300 text-orange-500 rounded-xl font-medium hover:bg-orange-50"
+                >
+                  🔄 要求修改
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <textarea
+                  value={revisionFeedback}
+                  onChange={e => setRevisionFeedback(e.target.value)}
+                  placeholder="请详细说明需要修改的地方..."
+                  rows={4}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowRevisionForm(false)}
+                    className="flex-1 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50"
+                  >
+                    取消
+                  </button>
+                  <button
+                    onClick={handleRequestRevision}
+                    disabled={isSubmitting}
+                    className="flex-1 py-2 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 disabled:opacity-50"
+                  >
+                    {isSubmitting ? '提交中...' : '提交修改意见'}
+                  </button>
+                </div>
               </div>
             )}
           </div>
+        )}
 
-          <div className="flex gap-3">
+        {/* Accepted - Payment */}
+        {delivery.status === 'accepted' && isOwner && (
+          <div className="text-center py-8">
+            <div className="text-5xl mb-4">✅</div>
+            <h4 className="text-lg font-bold text-gray-800 mb-2">交付已验收</h4>
+            <p className="text-gray-500 mb-6">请确认支付以完成悬赏</p>
             <button
-              onClick={() => setShowSubmitForm(false)}
-              className="px-4 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50"
+              onClick={onCompletePayment}
+              className="px-8 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl font-bold hover:opacity-90"
             >
-              取消
-            </button>
-            <button
-              onClick={handleSubmit}
-              className="px-6 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg font-medium hover:opacity-90"
-            >
-              确认提交
+              💰 确认支付
             </button>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Delivery History */}
-      <div className="divide-y divide-gray-100">
-        {deliveries.length === 0 ? (
-          <div className="py-12 text-center text-gray-500">
-            <span className="text-4xl block mb-2">📭</span>
-            暂无交付记录
+        {/* Completed */}
+        {delivery.status === 'completed' && (
+          <div className="text-center py-8">
+            <div className="text-5xl mb-4">🎉</div>
+            <h4 className="text-lg font-bold text-gray-800 mb-2">悬赏已完成</h4>
+            <p className="text-gray-500">感谢使用HAM悬赏系统</p>
           </div>
-        ) : (
-          [...deliveries].reverse().map((delivery) => {
-            const status = statusConfig[delivery.status];
-            
-            return (
-              <div key={delivery.id} className={`p-6 ${delivery.status === 'approved' ? 'bg-green-50' : ''}`}>
-                {/* Header */}
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">{status.icon}</span>
-                    <div>
-                      <h4 className="font-medium text-gray-800">第 {delivery.version} 版交付</h4>
-                      <span className="text-gray-400 text-sm">{delivery.submittedAt}</span>
-                    </div>
-                  </div>
-                  <span className={`px-3 py-1 text-sm rounded-full ${status.bg} ${status.color}`}>
-                    {status.label}
-                  </span>
-                </div>
+        )}
 
-                {/* Content */}
-                <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                  <pre className="text-gray-700 text-sm whitespace-pre-wrap font-sans">{delivery.content}</pre>
-                </div>
-
-                {/* Attachments */}
-                {delivery.attachments.length > 0 && (
-                  <div className="mb-4">
-                    <p className="text-sm font-medium text-gray-700 mb-2">📎 附件</p>
-                    <div className="flex flex-wrap gap-2">
-                      {delivery.attachments.map((file, i) => (
-                        <a
-                          key={i}
-                          href={file.url}
-                          className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg text-sm text-gray-700 hover:bg-gray-200"
-                        >
-                          <span>📄</span>
-                          <span>{file.name}</span>
-                          <span className="text-gray-400">({file.size})</span>
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Feedback */}
-                {delivery.feedback && (
-                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
-                    <p className="text-sm font-medium text-orange-700 mb-1">💬 发布者反馈</p>
-                    <p className="text-gray-700 text-sm">{delivery.feedback}</p>
-                  </div>
-                )}
-
-                {/* Actions for Owner */}
-                {isOwner && delivery.status === 'pending' && (
-                  <div className="flex gap-3 pt-4 border-t">
-                    <button
-                      onClick={() => onApprove?.(delivery.id)}
-                      className="flex-1 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-medium hover:opacity-90"
-                    >
-                      ✅ 验收通过
-                    </button>
-                    <button
-                      onClick={() => setFeedbackModal({ type: 'revision', deliveryId: delivery.id })}
-                      className="flex-1 py-3 border border-orange-400 text-orange-500 rounded-xl font-medium hover:bg-orange-50"
-                    >
-                      ✏️ 要求修改
-                    </button>
-                    <button
-                      onClick={() => setFeedbackModal({ type: 'reject', deliveryId: delivery.id })}
-                      className="px-6 py-3 border border-red-400 text-red-500 rounded-xl font-medium hover:bg-red-50"
-                    >
-                      ❌ 拒绝
-                    </button>
-                  </div>
-                )}
-              </div>
-            );
-          })
+        {/* Waiting */}
+        {isWorker && delivery.status === 'submitted' && (
+          <div className="text-center py-8">
+            <div className="text-5xl mb-4 animate-bounce">⏳</div>
+            <h4 className="text-lg font-bold text-gray-800 mb-2">等待发布者验收</h4>
+            <p className="text-gray-500">已提交交付，请耐心等待</p>
+            {delivery.submittedAt && (
+              <p className="text-gray-400 text-sm mt-2">提交时间: {delivery.submittedAt}</p>
+            )}
+          </div>
         )}
       </div>
-
-      {/* Feedback Modal */}
-      {feedbackModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setFeedbackModal(null)} />
-          <div className="relative bg-white rounded-2xl w-full max-w-md p-6">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">
-              {feedbackModal.type === 'revision' ? '✏️ 要求修改' : '❌ 拒绝交付'}
-            </h3>
-            <textarea
-              value={feedbackText}
-              onChange={e => setFeedbackText(e.target.value)}
-              rows={4}
-              placeholder={feedbackModal.type === 'revision' ? '说明需要修改的内容...' : '说明拒绝的原因...'}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 mb-4"
-            />
-            <div className="flex gap-3">
-              <button
-                onClick={() => setFeedbackModal(null)}
-                className="flex-1 py-3 border border-gray-300 text-gray-600 rounded-xl font-medium hover:bg-gray-50"
-              >
-                取消
-              </button>
-              <button
-                onClick={handleFeedbackSubmit}
-                className={`flex-1 py-3 rounded-xl font-medium text-white ${
-                  feedbackModal.type === 'revision' 
-                    ? 'bg-orange-500 hover:bg-orange-600' 
-                    : 'bg-red-500 hover:bg-red-600'
-                }`}
-              >
-                确认
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

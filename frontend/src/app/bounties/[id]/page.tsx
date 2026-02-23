@@ -3,260 +3,258 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import BountyStatus, { StatusTimeline } from '@/components/BountyStatus';
+import BountyStatus from '@/components/BountyStatus';
 import ApplicationList, { ApplyModal } from '@/components/ApplicationList';
 import DeliveryPanel from '@/components/DeliveryPanel';
 
+// Mock Data
 const mockBounty = {
   id: '1',
-  title: '急需开发一个电商小程序，功能完整，UI精美',
-  description: '需要开发一个完整的微信小程序，包含商品展示、购物车、订单管理、支付等功能。要求有电商开发经验，代码规范。',
-  requirements: `## 功能需求
+  title: '开发一个React数据可视化组件库',
+  description: '需要包含折线图、柱状图、饼图等常用图表，支持响应式和主题定制，使用TypeScript开发。',
+  requirements: `## 功能要求
 
-### 1. 用户模块
-- 微信授权登录
-- 个人信息管理
-- 收货地址管理
+1. **基础图表**
+   - 折线图 (Line Chart)
+   - 柱状图 (Bar Chart) 
+   - 饼图 (Pie Chart)
+   - 面积图 (Area Chart)
 
-### 2. 商品模块
-- 商品分类浏览
-- 商品搜索
-- 商品详情展示
-- 商品收藏
+2. **高级特性**
+   - 支持响应式布局
+   - 支持明暗主题切换
+   - 支持数据动画
+   - 支持图例和提示框
 
-### 3. 购物车
-- 添加/删除商品
-- 修改数量
-- 选择规格
+3. **技术要求**
+   - 使用 TypeScript 开发
+   - 使用 D3.js 或 ECharts 作为底层
+   - 提供完整的类型定义
+   - 提供 Storybook 文档
 
-### 4. 订单模块
-- 下单流程
-- 微信支付
-- 订单列表
-- 订单详情
+## 交付物
 
-## 技术要求
-- 使用原生小程序或 Taro/uni-app
-- 代码规范，有注释
-- 提供源码和部署文档
-
-## 交付标准
-- 完整可运行的小程序源码
-- 后台接口对接完成
-- 基本功能测试通过`,
+- GitHub 仓库源码
+- npm 包发布
+- 使用文档
+- 示例代码`,
   amount: 5000,
   category: '开发',
   status: 'in_progress' as const,
-  deadline: '2026-02-28',
+  deadline: '2026-03-15',
   applicantCount: 12,
   createdAt: '2026-02-20',
-  publisher: {
-    id: 'p1',
-    name: '张老板',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=boss1',
+  publisher: { 
+    id: 'u1',
+    name: '张三', 
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=zhang',
     rating: 4.8,
-    publishedCount: 15,
+    bountyCount: 15,
   },
-  tags: ['小程序', '电商', 'React'],
+  tags: ['React', 'TypeScript', 'D3.js', '数据可视化'],
   urgent: true,
-  worker: {
-    id: 'w1',
-    name: '代码高手',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=coder1',
+  viewCount: 256,
+};
+
+const mockApplications = [
+  {
+    id: 'a1',
+    applicant: { id: 'u2', name: '代码小王子', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=prince', rating: 4.9, completedBounties: 28 },
+    message: '我有5年React开发经验，熟悉D3.js和数据可视化，之前做过类似的组件库项目。可以在2周内交付高质量代码。',
+    proposedAmount: 4500,
+    estimatedDays: 14,
+    status: 'accepted' as const,
+    createdAt: '2026-02-21',
   },
+  {
+    id: 'a2',
+    applicant: { id: 'u3', name: '前端工程师小李', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=xiaoli', rating: 4.7, completedBounties: 15 },
+    message: '熟悉ECharts和图表开发，有丰富的TypeScript经验。',
+    estimatedDays: 10,
+    status: 'rejected' as const,
+    createdAt: '2026-02-21',
+  },
+];
+
+const mockDelivery = {
+  id: 'd1',
+  status: 'in_progress' as const,
+  revisionCount: 0,
 };
 
 export default function BountyDetailPage() {
   const params = useParams();
   const bountyId = params.id as string;
+  
   const [showApplyModal, setShowApplyModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<'detail' | 'applications' | 'delivery'>('detail');
+  
+  // Mock: Check if current user is owner or worker
+  const isOwner = false;
+  const isWorker = true;
+  const hasApplied = true;
+  const isLoggedIn = true;
 
-  // Mock: 当前用户身份
-  const isOwner = false; // 是否是发布者
-  const isWorker = true;  // 是否是接单者
-  const hasApplied = false;
-
-  const bounty = mockBounty;
-  const daysLeft = Math.ceil((new Date(bounty.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  const daysLeft = Math.ceil((new Date(mockBounty.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <div className="max-w-5xl mx-auto px-4 py-6">
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
-          <Link href="/bounties" className="hover:text-orange-500">悬赏大厅</Link>
-          <span>›</span>
-          <span className="text-gray-800">悬赏详情</span>
+      {/* Header */}
+      <div className="bg-white border-b">
+        <div className="max-w-5xl mx-auto px-4 py-4">
+          <Link href="/bounties" className="text-gray-500 hover:text-orange-500 text-sm">
+            ← 返回悬赏大厅
+          </Link>
         </div>
+      </div>
 
+      <div className="max-w-5xl mx-auto px-4 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Header Card */}
-            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-              <div className="p-6">
-                <div className="flex items-start justify-between gap-4 mb-4">
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <BountyStatus status={bounty.status} size="md" />
-                      {bounty.urgent && (
-                        <span className="px-2 py-1 text-xs rounded-full bg-gradient-to-r from-orange-500 to-red-500 text-white">
-                          ⚡ 加急
-                        </span>
-                      )}
-                    </div>
-                    <h1 className="text-xl font-bold text-gray-800">{bounty.title}</h1>
+            {/* Title Card */}
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <div className="flex items-start gap-4 mb-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <BountyStatus status={mockBounty.status} />
+                    {mockBounty.urgent && (
+                      <span className="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full">⚡ 加急</span>
+                    )}
                   </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-xs text-gray-400">悬赏金额</p>
-                    <p className="text-3xl font-bold text-red-500">
-                      ¥{bounty.amount.toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-
-                <p className="text-gray-600 mb-4">{bounty.description}</p>
-
-                {/* Tags */}
-                {bounty.tags && (
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {bounty.tags.map((tag, i) => (
-                      <span key={i} className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {/* Meta */}
-                <div className="flex items-center gap-6 text-sm text-gray-500 pt-4 border-t">
-                  <span>📅 发布于 {bounty.createdAt}</span>
-                  <span className={daysLeft <= 3 ? 'text-red-500' : ''}>
-                    ⏰ {daysLeft > 0 ? `${daysLeft}天后截止` : '已截止'}
-                  </span>
-                  <span>👥 {bounty.applicantCount}人申请</span>
+                  <h1 className="text-2xl font-bold text-gray-800">{mockBounty.title}</h1>
                 </div>
               </div>
 
-              {/* Action Bar */}
-              {bounty.status === 'open' && !isOwner && (
-                <div className="px-6 py-4 bg-gray-50 border-t">
-                  {hasApplied ? (
-                    <button disabled className="w-full py-3 bg-gray-300 text-gray-500 rounded-xl font-medium cursor-not-allowed">
-                      已申请，等待回复
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => setShowApplyModal(true)}
-                      className="w-full py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl font-bold hover:opacity-90"
-                    >
-                      🙋 立即申请接单
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Tabs */}
-            <div className="bg-white rounded-xl shadow-sm">
-              <div className="flex border-b">
-                {[
-                  { id: 'detail', label: '📋 详细需求' },
-                  { id: 'applications', label: `👥 申请列表 (${bounty.applicantCount})` },
-                  { id: 'delivery', label: '📦 交付管理' },
-                ].map(tab => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                    className={`flex-1 py-4 font-medium transition-colors ${
-                      activeTab === tab.id
-                        ? 'text-orange-500 border-b-2 border-orange-500'
-                        : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
+              {/* Tags */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                {mockBounty.tags.map(tag => (
+                  <span key={tag} className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm">
+                    {tag}
+                  </span>
                 ))}
               </div>
 
-              <div className="p-6">
-                {activeTab === 'detail' && (
-                  <div className="prose prose-sm max-w-none">
-                    <pre className="whitespace-pre-wrap font-sans text-gray-700 bg-gray-50 p-4 rounded-lg">
-                      {bounty.requirements}
-                    </pre>
-                  </div>
-                )}
-
-                {activeTab === 'applications' && (
-                  <ApplicationList 
-                    applications={[]} 
-                    isOwner={isOwner}
-                    onAccept={(id) => console.log('Accept', id)}
-                    onReject={(id) => console.log('Reject', id)}
-                  />
-                )}
-
-                {activeTab === 'delivery' && (
-                  <DeliveryPanel
-                    bountyId={bountyId}
-                    isOwner={isOwner}
-                    isWorker={isWorker}
-                  />
-                )}
+              {/* Meta */}
+              <div className="flex items-center gap-6 text-sm text-gray-500">
+                <span>👁️ {mockBounty.viewCount} 浏览</span>
+                <span>👥 {mockBounty.applicantCount} 人申请</span>
+                <span>📅 发布于 {mockBounty.createdAt}</span>
               </div>
             </div>
-          </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Publisher Card */}
-            <div className="bg-white rounded-xl p-6 shadow-sm">
-              <h3 className="font-bold text-gray-800 mb-4">👤 发布者</h3>
-              <div className="flex items-center gap-4 mb-4">
-                <img src={bounty.publisher.avatar} alt="" className="w-14 h-14 rounded-full" />
-                <div>
-                  <h4 className="font-medium text-gray-800">{bounty.publisher.name}</h4>
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <span className="text-yellow-400">★</span>
-                    <span>{bounty.publisher.rating}</span>
-                    <span>·</span>
-                    <span>发布{bounty.publisher.publishedCount}单</span>
-                  </div>
-                </div>
-              </div>
-              <button className="w-full py-2 border border-orange-400 text-orange-500 rounded-lg hover:bg-orange-50">
-                💬 联系发布者
-              </button>
+            {/* Description */}
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <h2 className="font-bold text-gray-800 mb-4">📋 需求描述</h2>
+              <p className="text-gray-700 leading-relaxed">{mockBounty.description}</p>
             </div>
 
-            {/* Worker Card (if assigned) */}
-            {bounty.worker && bounty.status !== 'open' && (
-              <div className="bg-green-50 border border-green-200 rounded-xl p-6">
-                <h3 className="font-bold text-gray-800 mb-4">🎯 接单者</h3>
-                <div className="flex items-center gap-4">
-                  <img src={bounty.worker.avatar} alt="" className="w-14 h-14 rounded-full" />
-                  <div>
-                    <h4 className="font-medium text-gray-800">{bounty.worker.name}</h4>
-                    <span className="text-green-600 text-sm">正在处理中</span>
-                  </div>
+            {/* Requirements */}
+            {mockBounty.requirements && (
+              <div className="bg-white rounded-xl shadow-sm p-6">
+                <h2 className="font-bold text-gray-800 mb-4">📝 详细需求</h2>
+                <div className="prose prose-sm max-w-none text-gray-700">
+                  <pre className="whitespace-pre-wrap bg-gray-50 p-4 rounded-lg text-sm">
+                    {mockBounty.requirements}
+                  </pre>
                 </div>
               </div>
             )}
 
-            {/* Status Timeline */}
-            <div className="bg-white rounded-xl p-6 shadow-sm">
-              <StatusTimeline currentStatus={bounty.status} />
+            {/* Applications (Owner View) */}
+            {isOwner && (
+              <div className="bg-white rounded-xl shadow-sm p-6">
+                <ApplicationList 
+                  applications={mockApplications}
+                  isOwner={isOwner}
+                  onAccept={(id) => console.log('Accept', id)}
+                  onReject={(id) => console.log('Reject', id)}
+                />
+              </div>
+            )}
+
+            {/* Delivery Panel (Worker View) */}
+            {(isWorker || isOwner) && mockBounty.status !== 'open' && (
+              <DeliveryPanel
+                delivery={mockDelivery}
+                isOwner={isOwner}
+                isWorker={isWorker}
+                onSubmitDelivery={(content) => console.log('Submit', content)}
+                onRequestRevision={(feedback) => console.log('Revision', feedback)}
+                onAcceptDelivery={() => console.log('Accept delivery')}
+                onCompletePayment={() => console.log('Complete payment')}
+              />
+            )}
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Price Card */}
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <p className="text-gray-500 text-sm mb-1">悬赏金额</p>
+              <p className="text-4xl font-bold text-red-500 mb-4">
+                ¥{mockBounty.amount.toLocaleString()}
+              </p>
+              
+              <div className="space-y-3 mb-6">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-500">截止日期</span>
+                  <span className={`font-medium ${daysLeft <= 3 ? 'text-red-500' : 'text-gray-700'}`}>
+                    {mockBounty.deadline} ({daysLeft}天后)
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-500">分类</span>
+                  <span className="text-gray-700">{mockBounty.category}</span>
+                </div>
+              </div>
+
+              {/* Action Button */}
+              {mockBounty.status === 'open' && !isOwner && (
+                hasApplied ? (
+                  <button disabled className="w-full py-3 bg-gray-100 text-gray-500 rounded-xl font-medium cursor-not-allowed">
+                    ✓ 已申请
+                  </button>
+                ) : isLoggedIn ? (
+                  <button 
+                    onClick={() => setShowApplyModal(true)}
+                    className="w-full py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl font-bold hover:opacity-90"
+                  >
+                    立即申请接单
+                  </button>
+                ) : (
+                  <Link href="/login" className="block w-full py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl font-bold text-center hover:opacity-90">
+                    登录后申请
+                  </Link>
+                )
+              )}
             </div>
 
-            {/* Safety Tips */}
-            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
-              <h4 className="font-medium text-yellow-800 mb-2">⚠️ 安全提醒</h4>
-              <ul className="text-yellow-700 text-sm space-y-1">
-                <li>• 所有交易请在平台内完成</li>
-                <li>• 不要私下转账或交易</li>
-                <li>• 遇到问题请联系客服</li>
+            {/* Publisher Card */}
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <h3 className="font-bold text-gray-800 mb-4">发布者</h3>
+              <div className="flex items-center gap-3 mb-4">
+                <img src={mockBounty.publisher.avatar} alt="" className="w-12 h-12 rounded-full" />
+                <div>
+                  <h4 className="font-medium text-gray-800">{mockBounty.publisher.name}</h4>
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <span>⭐ {mockBounty.publisher.rating}</span>
+                    <span>•</span>
+                    <span>{mockBounty.publisher.bountyCount}个悬赏</span>
+                  </div>
+                </div>
+              </div>
+              <button className="w-full py-2 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50">
+                💬 联系发布者
+              </button>
+            </div>
+
+            {/* Tips */}
+            <div className="bg-orange-50 rounded-xl p-4 border border-orange-100">
+              <h4 className="font-medium text-orange-800 mb-2">💡 温馨提示</h4>
+              <ul className="text-orange-700 text-sm space-y-1">
+                <li>• 仔细阅读需求后再申请</li>
+                <li>• 按时交付，保持沟通</li>
+                <li>• 有问题及时联系发布者</li>
               </ul>
             </div>
           </div>
@@ -266,9 +264,13 @@ export default function BountyDetailPage() {
       {/* Apply Modal */}
       <ApplyModal
         isOpen={showApplyModal}
+        bountyTitle={mockBounty.title}
+        bountyAmount={mockBounty.amount}
         onClose={() => setShowApplyModal(false)}
-        onSubmit={(data) => console.log('Apply', data)}
-        bountyTitle={bounty.title}
+        onSubmit={(data) => {
+          console.log('Apply:', data);
+          setShowApplyModal(false);
+        }}
       />
     </div>
   );
