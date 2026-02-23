@@ -167,3 +167,52 @@ CREATE TRIGGER update_purchases_updated_at BEFORE UPDATE ON purchases FOR EACH R
 -- DONE!
 -- ============================================
 SELECT 'HAM Database Schema Created Successfully!' AS status;
+
+-- ============================================
+-- 8. BOUNTIES TABLE (T032-DB-Bounty)
+-- ============================================
+CREATE TABLE IF NOT EXISTS bounties (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  title VARCHAR(200) NOT NULL,
+  description TEXT,
+  reward_cents BIGINT NOT NULL,
+  currency VARCHAR(3) DEFAULT 'USD',
+  status VARCHAR(20) DEFAULT 'open',
+  creator_id UUID REFERENCES accounts(id),
+  assignee_id UUID REFERENCES accounts(id),
+  deadline TIMESTAMPTZ,
+  category VARCHAR(50),
+  requirements TEXT,
+  deliverables TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS bounty_applications (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  bounty_id UUID REFERENCES bounties(id) ON DELETE CASCADE,
+  applicant_id UUID REFERENCES accounts(id),
+  proposal TEXT,
+  status VARCHAR(20) DEFAULT 'pending',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS bounty_deliveries (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  bounty_id UUID REFERENCES bounties(id) ON DELETE CASCADE,
+  submitter_id UUID REFERENCES accounts(id),
+  content TEXT,
+  attachments JSONB DEFAULT '[]',
+  submitted_at TIMESTAMPTZ DEFAULT NOW(),
+  reviewed_at TIMESTAMPTZ,
+  review_status VARCHAR(20),
+  review_notes TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_bounties_status ON bounties(status);
+CREATE INDEX IF NOT EXISTS idx_bounties_creator ON bounties(creator_id);
+CREATE INDEX IF NOT EXISTS idx_bounties_category ON bounties(category);
+CREATE INDEX IF NOT EXISTS idx_applications_bounty ON bounty_applications(bounty_id);
+CREATE INDEX IF NOT EXISTS idx_deliveries_bounty ON bounty_deliveries(bounty_id);
+
+CREATE TRIGGER update_bounties_updated_at BEFORE UPDATE ON bounties FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
