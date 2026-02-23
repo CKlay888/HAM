@@ -2,86 +2,104 @@
 
 import Link from 'next/link';
 import { Agent } from '@/types';
-import ReliabilityBadge from './ReliabilityBadge';
 
 interface AgentCardProps {
   agent: Agent;
 }
 
 export default function AgentCard({ agent }: AgentCardProps) {
+  const price = agent.priceType === 'free' ? 0 : parseFloat(agent.priceDisplay.replace(/[^\d.]/g, ''));
+  const originalPrice = price > 0 ? (price * 1.5).toFixed(0) : null;
+
   return (
-    <Link href={`/agent/${agent.id}`}>
-      <div className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-lg hover:border-blue-300 transition-all duration-200 cursor-pointer group">
-        {/* Header */}
-        <div className="flex items-start gap-3 mb-3">
-          <img 
-            src={agent.avatar} 
+    <Link href={`/agents/${agent.id}`}>
+      <div className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 group border border-gray-100">
+        {/* Image Container */}
+        <div className="relative aspect-square bg-gradient-to-br from-gray-50 to-gray-100 p-4">
+          <img
+            src={agent.avatar}
             alt={agent.name}
-            className="w-12 h-12 rounded-xl bg-gray-100"
+            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
           />
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-gray-900 truncate group-hover:text-blue-600 transition-colors">
-                {agent.name}
-              </h3>
-              {agent.isVerified && (
-                <svg className="w-4 h-4 text-blue-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-              )}
+          
+          {/* 角标 */}
+          {agent.isFeatured && (
+            <div className="absolute top-0 left-0">
+              <div className="bg-red-500 text-white text-xs px-2 py-1 rounded-br-lg font-medium">
+                HOT
+              </div>
             </div>
-            <p className="text-sm text-gray-500 truncate">{agent.tagline}</p>
+          )}
+          
+          {/* 优惠角标 */}
+          {price > 0 && (
+            <div className="absolute top-0 right-0">
+              <div className="bg-orange-500 text-white text-xs px-2 py-1 rounded-bl-lg font-medium">
+                限时优惠
+              </div>
+            </div>
+          )}
+
+          {/* 销量标签 */}
+          <div className="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
+            {(agent.callCount / 1000).toFixed(1)}k人在用
           </div>
         </div>
 
-        {/* Tags */}
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-xs rounded-full">
-            {agent.category}
-          </span>
-          {agent.tags.slice(0, 2).map((tag) => (
-            <span key={tag} className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">
-              {tag}
+        {/* Content */}
+        <div className="p-3">
+          {/* Title */}
+          <h3 className="font-medium text-gray-800 text-sm leading-tight mb-2 line-clamp-2 min-h-[40px] group-hover:text-orange-600 transition-colors">
+            {agent.name} {agent.tagline}
+          </h3>
+
+          {/* Tags */}
+          <div className="flex items-center gap-1 mb-2">
+            <span className="px-1.5 py-0.5 bg-red-50 text-red-500 text-xs rounded border border-red-200">
+              官方认证
             </span>
-          ))}
-        </div>
+            <span className="px-1.5 py-0.5 bg-orange-50 text-orange-500 text-xs rounded border border-orange-200">
+              极速响应
+            </span>
+          </div>
 
-        {/* Stats */}
-        <div className="flex items-center justify-between text-sm mb-3">
-          <div className="flex items-center gap-3">
+          {/* Price */}
+          <div className="flex items-baseline gap-2 mb-2">
+            {agent.priceType === 'free' ? (
+              <span className="text-lg font-bold text-green-600">免费</span>
+            ) : (
+              <>
+                <span className="text-xs text-red-500">¥</span>
+                <span className="text-xl font-bold text-red-500">{price}</span>
+                <span className="text-xs text-gray-400">/{agent.priceType === 'subscription' ? '月' : '次'}</span>
+                {originalPrice && (
+                  <span className="text-xs text-gray-400 line-through">¥{originalPrice}</span>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Bottom Row */}
+          <div className="flex items-center justify-between">
+            {/* Rating & Reviews */}
             <div className="flex items-center gap-1">
-              <svg className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-              </svg>
-              <span className="font-medium text-gray-900">{agent.rating}</span>
-              <span className="text-gray-400">({agent.reviewCount})</span>
+              <span className="text-yellow-500 text-sm">★</span>
+              <span className="text-sm font-medium text-gray-700">{agent.rating}</span>
+              <span className="text-xs text-gray-400">({agent.reviewCount}评价)</span>
             </div>
-            <ReliabilityBadge grade={agent.reliabilityGrade} size="sm" />
+            
+            {/* Buy Button */}
+            <button 
+              onClick={(e) => {
+                e.preventDefault();
+                window.location.href = `/purchase/${agent.id}`;
+              }}
+              className="px-3 py-1 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs rounded-full font-medium hover:from-orange-600 hover:to-red-600 transition-all"
+            >
+              立即购买
+            </button>
           </div>
-          <span className="text-gray-400">{(agent.callCount / 1000).toFixed(1)}k 次调用</span>
         </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-          <div className="flex items-center gap-2">
-            <img 
-              src={agent.creatorAvatar} 
-              alt={agent.creatorName}
-              className="w-5 h-5 rounded-full"
-            />
-            <span className="text-xs text-gray-500">{agent.creatorName}</span>
-          </div>
-          <span className={`font-semibold ${agent.priceType === 'free' ? 'text-green-600' : 'text-blue-600'}`}>
-            {agent.priceDisplay}
-          </span>
-        </div>
-
-        {/* Featured Badge */}
-        {agent.isFeatured && (
-          <div className="absolute -top-2 -right-2 bg-gradient-to-r from-orange-400 to-pink-500 text-white text-xs px-2 py-0.5 rounded-full font-medium">
-            精选
-          </div>
-        )}
       </div>
     </Link>
   );
