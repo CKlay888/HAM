@@ -16,6 +16,11 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { MessagesModule } from './messages/messages.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { BountiesModule } from './bounties/bounties.module';
+// 新增模块
+import { CategoriesModule } from './categories/categories.module';
+import { RecommendModule } from './recommend/recommend.module';
+import { OrdersModule } from './orders/orders.module';
+import { DevelopersModule } from './developers/developers.module';
 
 @Module({
   imports: [
@@ -34,6 +39,11 @@ import { BountiesModule } from './bounties/bounties.module';
     MessagesModule,
     AnalyticsModule,
     BountiesModule,
+    // 新增模块
+    CategoriesModule,
+    RecommendModule,
+    OrdersModule,
+    DevelopersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,13 +1,14 @@
 import { Module } from '@nestjs/common';
-import { SearchController } from './search.controller';
-import { SearchService } from './search.service';
-import { AgentsModule } from '../agents/agents.module';
-import { PurchasesModule } from '../purchases/purchases.module';
-import { ReviewsModule } from '../reviews/reviews.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { SearchController } from './controllers/search.controller';
+import { SearchService } from './services/search.service';
+import { Agent } from '../entities/agent.entity';
+import { SearchHistory, HotSearch } from '../entities/search-history.entity';
 
 @Module({
-  imports: [AgentsModule, PurchasesModule, ReviewsModule],
+  imports: [TypeOrmModule.forFeature([Agent, SearchHistory, HotSearch])],
   controllers: [SearchController],
   providers: [SearchService],
+  exports: [SearchService],
 })
 export class SearchModule {}
