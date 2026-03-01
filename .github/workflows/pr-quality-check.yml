@@ -1,0 +1,188 @@
+# HAM 代码质量检查 - Pull Request 自动触发
+# 
+# 流程：
+# 1. 员工 push 代码到分支
+# 2. 创建 Pull Request
+# 3. GitHub Actions 自动运行此检查
+# 4. 全部通过后，Colin 可以 Merge
+
+name: 🔍 PR Quality Check
+
+on:
+  pull_request:
+    branches: [main, master]
+    types: [opened, synchronize, reopened]
+
+# 取消同一 PR 的旧运行
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  # ==========================================
+  # 后端检查
+  # ==========================================
+  backend-check:
+    name: 🔧 后端检查
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+
+    steps:
+      - name: 📥 检出代码
+        uses: actions/checkout@v4
+
+      - name: 📦 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: 📚 安装依赖
+        run: npm ci
+
+      - name: 🔍 代码规范检查 (ESLint)
+        run: npm run lint
+        continue-on-error: false
+
+      - name: 🔨 TypeScript 编译
+        run: npm run build
+
+      - name: 🧪 单元测试
+        run: npm run test -- --passWithNoTests
+
+      - name: 📊 测试覆盖率
+        run: npm run test:cov -- --passWithNoTests
+        continue-on-error: true
+
+      - name: 📈 检查覆盖率阈值
+        run: |
+          if [ -f coverage/coverage-summary.json ]; then
+            coverage=$(cat coverage/coverage-summary.json | jq '.total.lines.pct // 0')
+            echo "代码覆盖率: $coverage%"
+            if (( $(echo "$coverage < 50" | bc -l) )); then
+              echo "⚠️ 覆盖率低于 50%，建议补充测试"
+            fi
+          else
+            echo "⚠️ 无覆盖率报告"
+          fi
+        continue-on-error: true
+
+  # ==========================================
+  # 前端检查
+  # ==========================================
+  frontend-check:
+    name: 💡 前端检查
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+
+    steps:
+      - name: 📥 检出代码
+        uses: actions/checkout@v4
+
+      - name: 📦 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 📚 安装依赖
+        run: npm ci
+
+      - name: 🔍 代码规范检查 (ESLint)
+        run: npm run lint
+        continue-on-error: true  # Next.js lint 可能有警告
+
+      - name: 🔨 Next.js 构建
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+
+  # ==========================================
+  # 安全检查
+  # ==========================================
+  security-check:
+    name: 🔒 安全检查
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 检出代码
+        uses: actions/checkout@v4
+
+      - name: 🔍 检查敏感信息泄露
+        run: |
+          echo "检查是否有敏感信息..."
+          
+          # 检查常见敏感词
+          if grep -rn "password\s*=\s*['\"]" --include="*.ts" --include="*.tsx" --include="*.js" . | grep -v node_modules | grep -v ".env"; then
+            echo "⚠️ 发现硬编码密码"
+          fi
+          
+          if grep -rn "sk-ant-\|sk-\|ghp_\|gho_" --include="*.ts" --include="*.tsx" --include="*.js" . | grep -v node_modules; then
+            echo "❌ 发现 API Key 泄露！"
+            exit 1
+          fi
+          
+          echo "✅ 未发现明显敏感信息泄露"
+
+      - name: 🔐 依赖漏洞检查 (后端)
+        run: |
+          cd backend
+          npm audit --audit-level=high || true
+        continue-on-error: true
+
+      - name: 🔐 依赖漏洞检查 (前端)
+        run: |
+          cd frontend
+          npm audit --audit-level=high || true
+        continue-on-error: true
+
+  # ==========================================
+  # 质量报告
+  # ==========================================
+  quality-report:
+    name: 📋 质量报告
+    runs-on: ubuntu-latest
+    needs: [backend-check, frontend-check, security-check]
+    if: always()
+    
+    steps:
+      - name: 📊 生成报告
+        run: |
+          echo "## 🔍 代码质量检查报告" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| 检查项 | 状态 |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|------|" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ needs.backend-check.result }}" == "success" ]; then
+            echo "| 🔧 后端检查 | ✅ 通过 |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| 🔧 后端检查 | ❌ 失败 |" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.frontend-check.result }}" == "success" ]; then
+            echo "| 💡 前端检查 | ✅ 通过 |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| 💡 前端检查 | ❌ 失败 |" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.security-check.result }}" == "success" ]; then
+            echo "| 🔒 安全检查 | ✅ 通过 |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| 🔒 安全检查 | ❌ 失败 |" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "📅 检查时间: $(date '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+
+      - name: ✅ 检查是否全部通过
+        if: needs.backend-check.result != 'success' || needs.frontend-check.result != 'success' || needs.security-check.result != 'success'
+        run: |
+          echo "❌ 有检查项未通过，请修复后重新提交"
+          exit 1
